@@ -21,8 +21,8 @@ let toastTimer = null;
 let selectedMemberFilter = "all";
 let pendingScrollStart = null;
 const availabilityDraft = {};
-const dayStartMinutes = 7 * 60;
-const dayEndMinutes = 24 * 60;
+const dayStartMinutes = 8 * 60;
+const dayEndMinutes = 22 * 60;
 const hourHeight = 66;
 
 function pageMode() {
@@ -468,6 +468,17 @@ function openSlotsForHour(day, hour) {
   const end = new Date(start.getTime() + 60 * 60_000);
   return visibleAvailabilities().filter((slot) => new Date(slot.start) < end && new Date(slot.end) > start);
 }
+function openCountForDay(day) {
+  const key = dateKey(day);
+  return visibleAvailabilities().filter((slot) => dateKey(slot.start) === key).length;
+}
+function meetingCountForDay(day) {
+  const key = dateKey(day);
+  return state.meetings
+    .filter((meeting) => memberMatchesFilter(meeting.memberId))
+    .filter((meeting) => dateKey(meeting.start) === key)
+    .length;
+}
 function startFromCalendarClick(event, day) {
   const rect = event.currentTarget.getBoundingClientRect();
   const rawMinutes = dayStartMinutes + ((event.clientY - rect.top) / hourHeight) * 60;
@@ -484,7 +495,14 @@ function renderCalendar() {
     <div class="week-calendar">
       <div class="week-header">
         <div class="time-head"></div>
-        ${days.map((day) => `<div class="day-head"><strong>${fmtDate(day)}</strong></div>`).join("")}
+        ${days.map((day) => {
+          const openCount = openCountForDay(day);
+          const meetingCount = meetingCountForDay(day);
+          return `<div class="day-head">
+            <strong>${fmtDate(day)}</strong>
+            <span>${openCount}枠${meetingCount ? ` / 予定${meetingCount}` : ""}</span>
+          </div>`;
+        }).join("")}
       </div>
       <div class="week-body" style="--calendar-height:${calendarHeight}px;--hour-height:${hourHeight}px">
         <div class="time-axis">
@@ -546,7 +564,7 @@ function renderAvailabilityTable() {
     <div class="availability-calendar">
       <div class="availability-row availability-head">
         <div class="availability-time"></div>
-        ${days.map((day) => `<div class="availability-day">${fmtDate(day)}</div>`).join("")}
+        ${days.map((day) => `<div class="availability-day">${fmtDate(day)}<span>${openCountForDay(day)}枠</span></div>`).join("")}
       </div>
       ${hours.map((hour) => `
         <div class="availability-row">
