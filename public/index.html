@@ -1,1 +1,196 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>人事チーム予定管理</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section id="landingPage" class="landing">
+      <div class="landing-hero">
+        <h1>人事チーム予定管理</h1>
+        <p>使いたい機能を選んでください。</p>
+      </div>
+      <div class="landing-grid">
+        <a class="landing-card" href="/view">
+          <span>確認用</span>
+          <strong>空き時間を確認する</strong>
+          <p>空いている日程だけをカレンダー形式で確認できます。</p>
+        </a>
+        <a class="landing-card primary-card" href="/manage">
+          <span>管理用</span>
+          <strong>予定を入力・管理する</strong>
+          <p>空き時間の追加、予定登録、メンバー管理ができます。</p>
+        </a>
+      </div>
+    </section>
 
+    <div id="appPage" hidden>
+    <header id="appHeader" class="hero">
+      <div>
+        <h1 id="pageTitle">人事チーム予定管理</h1>
+      </div>
+      <div class="hero-actions">
+        <a id="switchPageLink" class="secondary button-link" href="/manage">管理用へ</a>
+        <label class="toolbar-select">担当者<select id="memberFilter"></select></label>
+        <button class="secondary" data-open="availabilityDialog">空き時間を追加</button>
+        <button class="primary" data-open="meetingDialog">予定を登録</button>
+      </div>
+    </header>
+
+    <section id="weeklyPanel" class="panel">
+      <div class="panel-head">
+        <button class="secondary week-nav-button" id="prevWeek">前の週</button>
+        <div>
+          <h2 id="weekLabel">週間予定</h2>
+          <button class="ghost small" id="todayWeek">今週へ戻る</button>
+        </div>
+        <button class="secondary week-nav-button" id="nextWeek">次の週</button>
+      </div>
+      <div id="calendar" class="calendar"></div>
+    </section>
+
+    <section id="availabilityPanel" class="panel">
+      <div class="panel-head">
+        <button class="secondary week-nav-button" id="prevOpenWeek">前の週</button>
+        <div>
+          <h2>空き時間一覧</h2>
+          <p id="openWeekLabel" class="week-range-label"></p>
+          <button class="ghost small" id="todayOpenWeek">今週へ戻る</button>
+        </div>
+        <button class="secondary week-nav-button" id="nextOpenWeek">次の週</button>
+      </div>
+      <div id="availabilityTable" class="table-wrap"></div>
+    </section>
+
+    <section id="managementGrid" class="grid">
+      <div class="panel compact-panel">
+        <div class="panel-head">
+          <div>
+            <h2>メンバー</h2>
+          </div>
+          <button class="secondary" data-open="memberDialog">追加</button>
+        </div>
+        <div id="members" class="list"></div>
+      </div>
+      <div class="panel compact-panel">
+        <div class="panel-head">
+          <div>
+            <h2>登録済み予定</h2>
+          </div>
+        </div>
+        <div id="meetings" class="list"></div>
+      </div>
+    </section>
+    </div>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="memberDialog">
+    <form id="memberForm" method="dialog">
+      <div class="modal-head"><h2>メンバー追加</h2><button type="button" class="ghost" data-close="memberDialog">閉じる</button></div>
+      <input type="hidden" name="memberId" id="editingMemberId">
+      <label>名前<input name="name" required placeholder="山田 太郎"></label>
+      <label>Gmail<input name="email" type="email" placeholder="yamada@example.com"></label>
+      <label>固定リンク<input name="fixedLink" type="url" placeholder="https://meet.google.com/xxx-xxxx-xxx"></label>
+      <label>表示カラー<input name="color" type="color" value="#2453d6"></label>
+      <button class="primary full">追加する</button>
+    </form>
+  </dialog>
+
+  <dialog id="availabilityDialog">
+    <form id="availabilityForm" method="dialog">
+      <div class="modal-head"><h2>空き時間を追加</h2><button type="button" class="ghost" data-close="availabilityDialog">閉じる</button></div>
+      <label>メンバー<select name="memberId" class="member-select" required></select></label>
+      <div class="availability-builder">
+        <label>日付を追加<input type="date" id="availabilityDate"></label>
+        <button type="button" class="secondary" id="addAvailabilityDate">日付を追加</button>
+      </div>
+      <p class="note">日付ごとに登録したい開始時刻を選択してください。空き時間はすべて1時間枠で登録され、既に予定がある時間は自動で避けます。</p>
+      <div id="availabilityBulkList" class="bulk-list"></div>
+      <button class="primary full">まとめて追加する</button>
+    </form>
+  </dialog>
+
+  <dialog id="slotActionDialog">
+    <form method="dialog">
+      <div class="modal-head"><h2>この時間に登録</h2><button type="button" class="ghost" data-close="slotActionDialog">閉じる</button></div>
+      <button type="button" class="slot-preview slot-preview-button" id="slotActionTime">選択した時間</button>
+      <div class="slot-time-editor" id="slotTimeEditor" hidden>
+        <label>開始日<input id="slotActionDate" type="date" required></label>
+        <div class="time-range">
+          <label>開始<select id="slotActionStart" class="quarter-time-select" required></select></label>
+          <label>終了<select id="slotActionEnd" class="quarter-time-select" data-include-end="true" required></select></label>
+        </div>
+      </div>
+      <label>担当メンバー<select id="slotActionMember" class="member-select" required></select></label>
+      <div class="split-actions">
+        <button type="button" class="secondary" id="addSlotFromCalendar">空き時間にする</button>
+        <button type="button" class="primary" id="addMeetingFromCalendar">予定を登録</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="meetingDialog">
+    <form id="meetingForm" method="dialog">
+      <div class="modal-head"><h2>予定を登録</h2><button type="button" class="ghost" data-close="meetingDialog">閉じる</button></div>
+      <input type="hidden" id="editingMeetingId" name="editingMeetingId">
+      <label>担当メンバー<select name="memberId" class="member-select" required></select></label>
+      <div class="title-builder">
+        <label>予定種類
+          <select id="meetingType">
+            <option value="custom">自由入力</option>
+            <option value="first">1次面接</option>
+            <option value="second">2次面接</option>
+            <option value="training">新人研修</option>
+          </select>
+        </label>
+        <label>候補者・対象者名<input id="candidateName" placeholder="山田太郎"></label>
+      </div>
+      <label>予定名<input name="title" id="meetingTitle" required placeholder="入力すると候補が表示されます"></label>
+      <div class="title-suggestions" id="titleSuggestions" aria-label="予定名候補" hidden>
+        <button type="button" class="suggestion-chip" data-title="【1次面接】〇〇様-面接者-">【1次面接】〇〇様-面接者-</button>
+        <button type="button" class="suggestion-chip" data-title="【2次面接】〇〇様-面接者-">【2次面接】〇〇様-面接者-</button>
+        <button type="button" class="suggestion-chip" data-title="新人研修-〇〇さん/〇〇さん-">新人研修-〇〇さん/〇〇さん-</button>
+      </div>
+      <label>場所・URL<input name="location" placeholder="担当メンバーの固定リンクが自動で入ります"></label>
+      <fieldset class="meeting-time-card">
+        <legend>日時</legend>
+        <div class="meeting-time-grid">
+          <label>開始日<input id="meetingDate" type="date" required></label>
+          <label>開始時刻<select id="meetingTime" class="quarter-time-select" required></select></label>
+          <label>終了時刻<select id="meetingEnd" class="quarter-time-select" data-include-end="true" required></select></label>
+        </div>
+      </fieldset>
+      <label>詳細メモ<textarea name="note" rows="4" placeholder="補足、事前情報、当日の確認事項など"></textarea></label>
+      <button class="primary full">登録する</button>
+    </form>
+  </dialog>
+
+  <dialog id="completionDialog">
+    <form method="dialog">
+      <div class="modal-head"><h2>登録完了</h2><button type="button" class="ghost" data-close="completionDialog">閉じる</button></div>
+      <div id="integrationStatus" class="integration-status" hidden></div>
+      <p class="note">下記の文章をインフラメッセージで送信してください。</p>
+      <textarea id="completionMessage" class="message-preview" rows="18" readonly></textarea>
+      <button type="button" class="primary full" id="copyCompletionMessage">文章をコピー</button>
+    </form>
+  </dialog>
+
+  <dialog id="eventDetailDialog">
+    <form method="dialog">
+      <div class="modal-head"><h2 id="eventDetailTitle">詳細</h2><button type="button" class="ghost" data-close="eventDetailDialog">閉じる</button></div>
+      <div id="eventDetailBody" class="detail-card"></div>
+      <div id="eventDetailActions" class="split-actions">
+        <button type="button" class="secondary" id="eventDetailPrimary">予定を登録</button>
+        <button type="button" class="secondary" id="eventDetailEdit">編集</button>
+        <button type="button" class="delete" id="eventDetailDelete">削除</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>
