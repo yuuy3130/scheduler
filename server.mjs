@@ -286,7 +286,10 @@ const server = http.createServer(async (req, res) => {
         end,
         members: store.members,
         availabilities: store.availabilities.filter((slot) => new Date(slot.start) >= new Date(start) && new Date(slot.start) < new Date(end)),
-        meetings: store.meetings.filter((meeting) => new Date(meeting.start) < new Date(end) && new Date(meeting.end) > new Date(start))
+        meetings: store.meetings.filter((meeting) => new Date(meeting.start) < new Date(end) && new Date(meeting.end) > new Date(start)),
+        upcomingMeetings: store.meetings
+          .filter((meeting) => new Date(meeting.end).getTime() > Date.now())
+          .sort((a, b) => new Date(a.start) - new Date(b.start))
       });
     }
 
