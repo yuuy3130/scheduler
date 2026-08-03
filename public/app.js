@@ -36,7 +36,7 @@ function applyPageMode() {
   $("#appPage").hidden = mode === "landing";
   if (mode === "landing") return;
   const isView = mode === "view";
-  $("#pageTitle").textContent = isView ? "空き時間確認" : "予定入力・管理";
+  $("#pageTitle").textContent = "日程調整ツール";
   $("#appHeader").classList.toggle("view-toolbar", isView);
   $("#weeklyPanel").hidden = isView;
   $("#availabilityPanel").hidden = !isView;
