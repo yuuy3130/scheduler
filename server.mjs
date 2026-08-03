@@ -275,7 +275,8 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && url.pathname === "/api/week") {
-      const start = weekStartOf(url.searchParams.get("start") || new Date()).toISOString();
+      const requestedStart = url.searchParams.get("start");
+      const start = requestedStart ? new Date(requestedStart).toISOString() : weekStartOf(new Date()).toISOString();
       const endDate = new Date(start);
       endDate.setDate(endDate.getDate() + 7);
       const end = endDate.toISOString();
