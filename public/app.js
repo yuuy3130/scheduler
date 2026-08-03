@@ -540,7 +540,7 @@ function renderMembers() {
   `).join("") : `<div class="empty">メンバーを追加してください</div>`;
 }
 function renderMeetings() {
-  const meetings = [...state.meetings]
+  const meetings = [...(state.upcomingMeetings || state.meetings)]
     .filter((meeting) => memberMatchesFilter(meeting.memberId))
     .sort((a, b) => new Date(a.start) - new Date(b.start));
   $("#meetings").innerHTML = meetings.length ? meetings.map((meeting) => `
