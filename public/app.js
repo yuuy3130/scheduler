@@ -725,7 +725,7 @@ $("#addSlotFromCalendar").onclick = async () => {
   });
   $("#slotActionDialog").close();
   weekStart = startOfWeek(new Date(start));
-  selectedMemberFilter = memberId;
+  selectedMemberFilter = "all";
   pendingScrollStart = start;
   selectedCalendarStart = null;
   showToast("空き時間を追加しました。");
@@ -822,7 +822,7 @@ $("#availabilityForm").onsubmit = async (event) => {
   });
   const firstStart = [...starts].sort()[0];
   weekStart = startOfWeek(new Date(firstStart));
-  selectedMemberFilter = String(data.get("memberId") || "all");
+  selectedMemberFilter = "all";
   pendingScrollStart = firstStart;
   Object.keys(availabilityDraft).forEach((date) => delete availabilityDraft[date]);
   event.target.reset();
@@ -881,7 +881,7 @@ $("#meetingForm").onsubmit = async (event) => {
     $("#editingMeetingId").value = "";
     $("#meetingDialog").close();
     weekStart = startOfWeek(new Date(start));
-    selectedMemberFilter = memberId;
+    selectedMemberFilter = "all";
     pendingScrollStart = start;
     await render();
     if (editingId) {
