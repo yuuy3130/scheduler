@@ -19,6 +19,7 @@ let selectedCalendarStart = null;
 let selectedEventDetail = null;
 let toastTimer = null;
 let selectedMemberFilter = "all";
+let pendingScrollStart = null;
 const availabilityDraft = {};
 const dayStartMinutes = 7 * 60;
 const dayEndMinutes = 24 * 60;
@@ -135,6 +136,14 @@ function setMeetingEndOneHourLater() {
 }
 function meetingDurationMinutes() {
   return timeToMinutes($("#meetingEnd").value) - timeToMinutes($("#meetingTime").value);
+}
+function scrollCalendarTo(value) {
+  requestAnimationFrame(() => {
+    const body = document.querySelector(".week-body");
+    if (!body) return;
+    const top = ((minutesOfDay(value) - dayStartMinutes) / 60) * hourHeight;
+    body.scrollTop = Math.max(0, top - 90);
+  });
 }
 async function api(path, options = {}) {
   const response = await fetch(path, { headers: { "content-type": "application/json" }, ...options });
@@ -527,7 +536,8 @@ function renderAvailabilityTable() {
   const slots = visibleAvailabilities();
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
   $("#openWeekLabel").textContent = `${fmtDate(days[0])} - ${fmtDate(days[6])}`;
-  if (!slots.length) {
+  const weekSlots = slots.filter((slot) => days.some((day) => dateKey(slot.start) === dateKey(day)));
+  if (!weekSlots.length) {
     $("#availabilityTable").innerHTML = `<div class="empty">この週の空き時間はありません</div>`;
     return;
   }
@@ -641,6 +651,10 @@ async function render() {
   renderMeetings();
   renderAvailabilityBulkList();
   bindActions();
+  if (pendingScrollStart) {
+    scrollCalendarTo(pendingScrollStart);
+    pendingScrollStart = null;
+  }
 }
 
 document.querySelectorAll("[data-open]").forEach((button) => button.onclick = () => {
@@ -685,13 +699,19 @@ $("#addSlotFromCalendar").onclick = async () => {
   if (!selectedCalendarStart) return;
   const duration = slotActionDurationMinutes();
   if (duration <= 0) return alert("終了時刻は開始時刻より後にしてください");
+  const start = slotActionStartIso();
+  const memberId = $("#slotActionMember").value;
   await api("/api/availabilities", {
     method: "POST",
-    body: JSON.stringify({ memberId: $("#slotActionMember").value, starts: [slotActionStartIso()], duration })
+    body: JSON.stringify({ memberId, starts: [start], duration })
   });
   $("#slotActionDialog").close();
+  weekStart = startOfWeek(new Date(start));
+  selectedMemberFilter = memberId;
+  pendingScrollStart = start;
   selectedCalendarStart = null;
-  render();
+  showToast("空き時間を追加しました。");
+  await render();
 };
 $("#addMeetingFromCalendar").onclick = () => {
   if (!selectedCalendarStart) return;
@@ -782,11 +802,19 @@ $("#availabilityForm").onsubmit = async (event) => {
     method: "POST",
     body: JSON.stringify({ memberId: data.get("memberId"), starts, duration: 60, skipBusy: true })
   });
+  const firstStart = [...starts].sort()[0];
+  weekStart = startOfWeek(new Date(firstStart));
+  selectedMemberFilter = String(data.get("memberId") || "all");
+  pendingScrollStart = firstStart;
   Object.keys(availabilityDraft).forEach((date) => delete availabilityDraft[date]);
   event.target.reset();
   $("#availabilityDialog").close();
-  if (result.skipped) alert(`${result.count}件追加しました。予定あり・重複のため${result.skipped}件はスキップしました。`);
-  render();
+  if (result.skipped) {
+    showToast(`${result.count}件追加しました。予定あり・重複のため${result.skipped}件はスキップしました。`, "warning");
+  } else {
+    showToast(`${result.count}件の空き時間を追加しました。`);
+  }
+  await render();
 };
 $("#meetingForm [name=memberId]").onchange = applyMemberFixedLinkToMeeting;
 $("#meetingTime").onchange = setMeetingEndOneHourLater;
@@ -834,6 +862,9 @@ $("#meetingForm").onsubmit = async (event) => {
     event.target.reset();
     $("#editingMeetingId").value = "";
     $("#meetingDialog").close();
+    weekStart = startOfWeek(new Date(start));
+    selectedMemberFilter = memberId;
+    pendingScrollStart = start;
     await render();
     if (editingId) {
       showToast("予定を編集しました。カレンダー・シート側は必要に応じて確認してください。", "warning");
